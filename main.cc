@@ -19,14 +19,14 @@
 #include "Quaternion.h"
 #include "pen_line.h"
 #include "field_line.h"
-#include "hand_input_controller.h"
+#include "hand_input_listener.h"
 
 field_line::FieldLine *background_line;
 
 /////////////////////////////////
 // for Leap
 
-static hand_controller::HandInputController hand_input_controller;
+hand_listener::HandInputListener listener;
 
 /////////////////////////////////
 // for OpenGL
@@ -73,7 +73,6 @@ void apply_world_quaternion(Quaternion &q) {
 }
 
 void display_func(void) {
-  hand_input_controller.process_input();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -90,19 +89,19 @@ void display_func(void) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  glTranslated( hand_input_controller.camera_x_position
-      , -hand_input_controller.camera_y_position
-      , -hand_input_controller.camera_z_position);
-  apply_world_quaternion(hand_input_controller.world_x_quaternion);
-  apply_world_quaternion(hand_input_controller.world_y_quaternion);
+  glTranslated( listener.camera_x_position
+      , -listener.camera_y_position
+      , -listener.camera_z_position);
+  apply_world_quaternion(listener.world_x_quaternion);
+  apply_world_quaternion(listener.world_y_quaternion);
 
   background_line->draw();
 
   glPushAttrib(GL_LIGHTING_BIT);
   GLfloat lmodel_ambient[] = { 1.0, 1.0, 1.0, 1.0 };
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-  for (pen_line::LineList::iterator line = hand_input_controller.penline_list.begin()
-      ; line != hand_input_controller.penline_list.end(); line++) {
+  for (pen_line::LineList::iterator line = listener.penline_list.begin()
+      ; line != listener.penline_list.end(); line++) {
     if (line->size() > 3) {
       glPushMatrix();
       glLineWidth(3);
@@ -128,7 +127,7 @@ void key_func(unsigned char key, int x, int y) {
     exit(0);
     break;
   case 'I':
-    hand_input_controller.initialize_world_position();
+    listener.initialize_world_position();
     break;
   }
 }
@@ -211,7 +210,7 @@ static void init() {
   glEnable(GL_LIGHT0);
   glEnable(GL_COLOR_MATERIAL);
   background_line = new field_line::FieldLine();
-  hand_input_controller.initialize_world_position();
+  listener.initialize_world_position();
   float hard = Leap::PI / 32;
   float s = sin(hard);
   Quaternion rotate_quaternion(cos(hard), 1*s, 0*s, 0*s);
@@ -232,6 +231,8 @@ int main(int argc, char *argv[])
   glutSetWindow(mainHandle);
 
   init();
+  Leap::Controller controller;
+  controller.addListener(listener);
   using namespace std;
   glutMainLoop();
 

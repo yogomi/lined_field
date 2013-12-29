@@ -8,11 +8,9 @@ INCLUDES=-I../../sdks/leap_sdk/LeapSDK/include
 LDFLAGS=-framework OpenGL -framework GLUT ../../sdks/leap_sdk/LeapSDK/lib/libLeap.dylib
 endif
 
-CXX=clang
-
 TARGET=lined_field
 
-OBJS = main.o field_line.o hand_input_controller.o pen_line.o Quaternion.o
+OBJS = main.o field_line.o hand_input_listener.o pen_line.o Quaternion.o
 
 all: $(TARGET)
 

@@ -9,29 +9,28 @@
 
 #include "Quaternion.h"
 #include "pen_line.h"
-#include "hand_input_controller.h"
+#include "hand_input_listener.h"
 
-namespace hand_controller{
+using namespace Leap;
 
-HandInputController::HandInputController()
-: tracing_object_id(0)
-, previous_position(0,0,0)
-, traceline_counter(0)
-, rotating(false)
-, transfarring(false)
-, world_x_quaternion(1.0f, 0.0f, 0.0f, 0.0f)
-, world_y_quaternion(1.0f, 0.0f, 0.0f, 0.0f)
-, camera_x_position(DEFAULT_CAMERA_X)
-, camera_y_position(DEFAULT_CAMERA_Y)
-, camera_z_position(DEFAULT_CAMERA_Z)
+namespace hand_listener{
+
+void HandInputListener::onInit(const Controller& controller)
 {
+  tracing_object_id = 0;
+  previous_position = Vector(0,0,0);
+  traceline_counter = 0;
+  rotating = false;
+  transfarring = false;
+  world_x_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+  world_y_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+  camera_x_position = DEFAULT_CAMERA_X;
+  camera_y_position = DEFAULT_CAMERA_Y;
+  camera_z_position = DEFAULT_CAMERA_Z;
 }
 
-HandInputController::~HandInputController() {
-}
-
-void HandInputController::process_input() {
-  const Leap::Frame frame = controller.frame();
+void HandInputListener::onFrame(const Controller& controller) {
+  const Frame frame = controller.frame();
   struct timeval now;
   gettimeofday(&now, NULL);
   if (frame.hands().isEmpty()) {
@@ -42,14 +41,14 @@ void HandInputController::process_input() {
       || (frame.hands().count() > 1
         && frame.hands()[0].pointables().count() < 3
         && frame.hands()[1].pointables().count() < 3)) {
-    const Leap::Hand hand = frame.hands()[0];
-    const Leap::PointableList pointables = hand.pointables();
+    const Hand hand = frame.hands()[0];
+    const PointableList pointables = hand.pointables();
     if (pointables.count() <= 2) {
-      const Leap::Pointable tracing_object = hand.pointable(tracing_object_id);
+      const Pointable tracing_object = hand.pointable(tracing_object_id);
       if (tracing_object.isValid()) {
           rotating = false;
           transfarring = false;
-          Leap::Vector tip_position = tracing_object.tipPosition();
+          Vector tip_position = tracing_object.tipPosition();
           tip_position = convert_to_world_position(tip_position);
           if (traceline_counter > 5){
             if (tip_position.distanceTo(previous_position) > 1) {
@@ -64,7 +63,7 @@ void HandInputController::process_input() {
                 if(traceline_counter == 6){
                   pen_line::Line start_point;
                   std::cout << random() % 11 << std::endl;
-                  start_point.push_back(Leap::Vector((random() % 11) / 10.0f
+                  start_point.push_back(Vector((random() % 11) / 10.0f
                         , (random() % 11) / 10.0f
                         , (random() % 11) / 10.0f));
                   start_point.push_back(tip_position);
@@ -89,12 +88,12 @@ void HandInputController::process_input() {
       }
     } else if (pointables.count() > 2) {
       traceline_counter = 0;
-      const Leap::Vector parm_position = hand.palmPosition();
+      const Vector parm_position = hand.palmPosition();
       if (!rotating) {
         rotating = true;
         previous_position = parm_position;
       } else if (parm_position.distanceTo(previous_position) > 0.3) {
-        Leap::Vector move_vector(parm_position - previous_position);
+        Vector move_vector(parm_position - previous_position);
         float hard = move_vector.x / 200;
         float s = sin(hard);
         Quaternion rotate_quaternion(cos(hard)
@@ -116,18 +115,18 @@ void HandInputController::process_input() {
   } else {
     rotating = false;
     traceline_counter = 0;
-    const Leap::Hand hand1 = frame.hands()[0];
-    const Leap::Hand hand2 = frame.hands()[1];
-    const Leap::Vector hand_position1 = hand1.palmPosition();
-    const Leap::Vector hand_position2 = hand2.palmPosition();
-    Leap::Vector center_position = (hand_position1 + hand_position2) / 2;
+    const Hand hand1 = frame.hands()[0];
+    const Hand hand2 = frame.hands()[1];
+    const Vector hand_position1 = hand1.palmPosition();
+    const Vector hand_position2 = hand2.palmPosition();
+    Vector center_position = (hand_position1 + hand_position2) / 2;
     if (hand_position1.isValid() && hand_position2.isValid()
         && hand1.fingers().count() > 3 && hand2.fingers().count() > 3) {
       if (!transfarring) {
         transfarring = true;
         previous_position = center_position;
       } else if (center_position.distanceTo(previous_position) > 0.2) {
-        Leap::Vector move_vector(center_position - previous_position);
+        Vector move_vector(center_position - previous_position);
         move_vector = move_vector * 6;
         camera_x_position += move_vector.x;
         camera_y_position += move_vector.y;
@@ -139,7 +138,7 @@ void HandInputController::process_input() {
   gettimeofday(&time_buffer, NULL);
 }
 
-void HandInputController::initialize_world_position() {
+void HandInputListener::initialize_world_position() {
   camera_x_position = DEFAULT_CAMERA_X;
   camera_y_position = DEFAULT_CAMERA_Y;
   camera_z_position = DEFAULT_CAMERA_Z;
@@ -147,16 +146,15 @@ void HandInputController::initialize_world_position() {
   world_y_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
-Leap::Vector HandInputController::convert_to_world_position(const Leap::Vector &input_vector) {
+Vector HandInputListener::convert_to_world_position(const Vector &input_vector) {
   Quaternion q(0.0f
       , input_vector.x - camera_x_position + DEFAULT_CAMERA_X
       , input_vector.y + camera_y_position - DEFAULT_CAMERA_Y
       , input_vector.z + camera_z_position - DEFAULT_CAMERA_Z);
   q = conj(world_x_quaternion) * q * world_x_quaternion;
   q = conj(world_y_quaternion) * q * world_y_quaternion;
-  Leap::Vector v(q[1], q[2], q[3]);
+  Vector v(q[1], q[2], q[3]);
   return v;
 }
-
 
 }

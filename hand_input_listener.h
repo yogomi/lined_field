@@ -1,5 +1,5 @@
-#ifndef HAND_INPUT_CONTROLLER_H_
-#define HAND_INPUT_CONTROLLER_H_
+#ifndef HAND_INPUT_LISTENER_H_
+#define HAND_INPUT_LISTENER_H_
 
 #include "Leap.h"
 
@@ -10,20 +10,21 @@
 #define DEFAULT_CAMERA_Y 300
 #define DEFAULT_CAMERA_Z 600
 
-namespace hand_controller{
+using namespace Leap;
 
-class HandInputController {
+namespace hand_listener{
+
+class HandInputListener : public Listener {
 public:
-  HandInputController();
-  ~HandInputController();
-  void process_input();
+  virtual void onInit(const Controller& controller);
+  virtual void onFrame(const Controller& controller);
   void initialize_world_position();
-  Leap::Vector convert_to_world_position(const Leap::Vector &input_vector);
+  Vector convert_to_world_position(const Vector &input_vector);
 
   int tracing_object_id;
   pen_line::LineList penline_list;
   struct timeval time_buffer;
-  Leap::Vector previous_position;
+  Vector previous_position;
   int traceline_counter;
   bool rotating;
   bool transfarring;
@@ -33,11 +34,8 @@ public:
   float camera_x_position;
   float camera_y_position;
   float camera_z_position;
-
-private:
-  static Leap::Controller controller;
 };
 
 }
 
-#endif // HAND_INPUT_CONTROLLER_H_
+#endif // HAND_INPUT_LISTENER_H_
