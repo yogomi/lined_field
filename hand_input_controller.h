@@ -1,3 +1,6 @@
+#ifndef HAND_INPUT_CONTROLLER_H_
+#define HAND_INPUT_CONTROLLER_H_
+
 #include "Leap.h"
 
 #include "Quaternion.h"
@@ -36,3 +39,5 @@ private:
 };
 
 }
+
+#endif // HAND_INPUT_CONTROLLER_H_

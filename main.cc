@@ -17,6 +17,7 @@
 #include "Leap.h"
 
 #include "Quaternion.h"
+#include "pen_line.h"
 #include "field_line.h"
 #include "hand_input_controller.h"
 
@@ -25,7 +26,7 @@ field_line::FieldLine *background_line;
 /////////////////////////////////
 // for Leap
 
-static HandInputController hand_input_controller;
+static hand_controller::HandInputController hand_input_controller;
 
 /////////////////////////////////
 // for OpenGL
