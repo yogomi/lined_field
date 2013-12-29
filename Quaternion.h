@@ -6,7 +6,7 @@ class Quaternion {
 protected:
   float q[4];
 public:
-  Quaternion(float w, float x = 0.0f, float y = 0.0f, float z = 0.0f);
+  Quaternion(float w = 1.0f, float x = 0.0f, float y = 0.0f, float z = 0.0f);
   float operator [] (int i) const;
   float &operator [] (int i);
   Quaternion& operator=(const Quaternion& q);
