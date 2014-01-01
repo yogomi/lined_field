@@ -92,7 +92,7 @@ void HandInputListener::trace_finger_(const Hand& hand) {
   if (tracing_object.isValid()) {
     Vector tip_position = tracing_object.tipPosition();
     tip_position = convert_to_world_position_(tip_position);
-    if (tracing_lines[id].counter > 30){
+    if (tracing_lines[id].counter > 10){
       if (tip_position.distanceTo(tracing_lines[id].previous_position) > 1) {
         tracing_lines[id].previous_position = tip_position;
         tracing_lines[id].line.push_back(tip_position);
@@ -102,7 +102,7 @@ void HandInputListener::trace_finger_(const Hand& hand) {
         if (tip_position.distanceTo(tracing_lines[id].previous_position) < 10) {
           tracing_lines[id].previous_position = tip_position;
           ++tracing_lines[id].counter;
-          if(tracing_lines[id].counter == 31){
+          if(tracing_lines[id].counter == 11){
             pen_line::Line start_point;
             start_point.push_back(Vector((random() % 11) / 10.0f
                   , (random() % 11) / 10.0f
@@ -137,7 +137,9 @@ void HandInputListener::rotate_camera_(const Hand& hand) {
     for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = tracing_lines.begin()
         ; tracing_line_map != tracing_lines.end()
         ; tracing_line_map++) {
-      penline_list.push_back((*tracing_line_map).second.line);
+      if (tracing_lines[(*tracing_line_map).first].line.size() > 3) {
+        penline_list.push_back(tracing_lines[(*tracing_line_map).first].line);
+      }
       tracing_lines.erase((*tracing_line_map).first);
     }
     tracing_lines[id].previous_position = parm_position;

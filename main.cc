@@ -251,6 +251,7 @@ int main(int argc, char *argv[])
   int mainHandle = glutCreateWindow("Sample 1");
   glutSetWindow(mainHandle);
 
+  glutFullScreen();
   init();
   Leap::Controller controller;
   controller.addListener(listener);
