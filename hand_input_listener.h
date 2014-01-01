@@ -37,6 +37,8 @@ public:
 
 private:
   int open_hand_id_(const Frame& frame);
+  void trace_finger_(const Hand& hand);
+  void rotate_camera_(const Hand& hand);
 };
 
 }

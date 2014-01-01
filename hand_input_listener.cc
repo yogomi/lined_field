@@ -30,83 +30,15 @@ void HandInputListener::onInit(const Controller& controller)
 
 void HandInputListener::onFrame(const Controller& controller) {
   const Frame frame = controller.frame();
-  struct timeval now;
-  gettimeofday(&now, NULL);
   int open_hand_id = open_hand_id_(frame);
   if (frame.hands().isEmpty()) {
-    rotating = false;
     memset(traceline_counters, 0, sizeof(int) * MAX_TRACABLE_POINT_COUNT);
   } else if (open_hand_id < 0) {
-    const Hand hand = frame.hands()[0];
-    const PointableList pointables = hand.pointables();
-    if (pointables.count() <= 2) {
-      const Pointable tracing_object = hand.pointable(tracing_object_ids[0]);
-      if (tracing_object.isValid()) {
-          rotating = false;
-          Vector tip_position = tracing_object.tipPosition();
-          tip_position = convert_to_world_position(tip_position);
-          if (traceline_counters[0] > 5){
-            if (tip_position.distanceTo(previous_position) > 1) {
-              previous_position = tip_position;
-              penline_list.begin()->push_back(tip_position);
-            }
-          } else {
-            if (timercmp(&now, &time_buffer, >)) {
-              if (tip_position.distanceTo(previous_position) < 10) {
-                previous_position = tip_position;
-                ++traceline_counters[0];
-                if(traceline_counters[0] == 6){
-                  pen_line::Line start_point;
-                  std::cout << random() % 11 << std::endl;
-                  start_point.push_back(Vector((random() % 11) / 10.0f
-                        , (random() % 11) / 10.0f
-                        , (random() % 11) / 10.0f));
-                  start_point.push_back(tip_position);
-                  penline_list.push_front(start_point);
-                }
-              } else {
-                previous_position = tip_position;
-                traceline_counters[0] = 0;
-              }
-              gettimeofday(&time_buffer, NULL);
-              time_buffer.tv_usec += 30 * 1000;
-            }
-          }
-      } else {
-        traceline_counters[0] = 0;
-        gettimeofday(&time_buffer, NULL);
-        time_buffer.tv_usec += 100 * 1000;
-        tracing_object_ids[0] = pointables[0].id();
-        if(pointables[0].isValid()){
-          previous_position = convert_to_world_position(tracing_object.tipPosition());
-        }
-      }
+    for (int i=0; i<frame.hands().count(); i++) {
+      trace_finger_(frame.hands()[i]);
     }
   } else {
-    traceline_counters[0] = 0;
-    const Vector parm_position = frame.hand(open_hand_id).palmPosition();
-    if (!rotating) {
-      rotating = true;
-      previous_position = parm_position;
-    } else if (parm_position.distanceTo(previous_position) > 0.3) {
-      Vector move_vector(parm_position - previous_position);
-      float hard = move_vector.x / 200;
-      float s = sin(hard);
-      Quaternion rotate_quaternion(cos(hard)
-          , 0*s
-          , 1*s
-          , 0*s);
-      world_y_quaternion = world_y_quaternion * rotate_quaternion;
-      hard = move_vector.y / 200;
-      s = sin(hard);
-      rotate_quaternion = Quaternion(cos(hard)
-          , 1*s
-          , 0*s
-          , 0*s);
-      world_x_quaternion = world_x_quaternion * rotate_quaternion;
-      camera_z_position += move_vector.z * 6;
-      previous_position = parm_position;
-    }
+    rotate_camera_(frame.hand(open_hand_id));
   }
   gettimeofday(&time_buffer, NULL);
 }
@@ -130,8 +62,7 @@ Vector HandInputListener::convert_to_world_position(const Vector &input_vector) 
   return v;
 }
 
-int HandInputListener::open_hand_id_(const Frame& frame)
-{
+int HandInputListener::open_hand_id_(const Frame& frame) {
   for (int i=0; i<frame.hands().count(); i++) {
     if (frame.hands()[i].pointables().count() > 3) {
       return frame.hands()[i].id();
@@ -140,4 +71,78 @@ int HandInputListener::open_hand_id_(const Frame& frame)
   return -1;
 }
 
+void HandInputListener::trace_finger_(const Hand& hand) {
+  struct timeval now;
+  gettimeofday(&now, NULL);
+  const PointableList pointables = hand.pointables();
+  const Pointable tracing_object = hand.pointable(tracing_object_ids[0]);
+  rotating = false;
+  if (tracing_object.isValid()) {
+    Vector tip_position = tracing_object.tipPosition();
+    tip_position = convert_to_world_position(tip_position);
+    if (traceline_counters[0] > 5){
+      if (tip_position.distanceTo(previous_position) > 1) {
+        previous_position = tip_position;
+        penline_list.begin()->push_back(tip_position);
+      }
+    } else {
+      if (timercmp(&now, &time_buffer, >)) {
+        if (tip_position.distanceTo(previous_position) < 10) {
+          previous_position = tip_position;
+          ++traceline_counters[0];
+          if(traceline_counters[0] == 6){
+            pen_line::Line start_point;
+            std::cout << random() % 11 << std::endl;
+            start_point.push_back(Vector((random() % 11) / 10.0f
+                  , (random() % 11) / 10.0f
+                  , (random() % 11) / 10.0f));
+            start_point.push_back(tip_position);
+            penline_list.push_front(start_point);
+          }
+        } else {
+          previous_position = tip_position;
+          traceline_counters[0] = 0;
+        }
+        gettimeofday(&time_buffer, NULL);
+        time_buffer.tv_usec += 30 * 1000;
+      }
+    }
+  } else {
+    traceline_counters[0] = 0;
+    gettimeofday(&time_buffer, NULL);
+    time_buffer.tv_usec += 100 * 1000;
+    tracing_object_ids[0] = pointables[0].id();
+    if(pointables[0].isValid()){
+      previous_position = convert_to_world_position(tracing_object.tipPosition());
+    }
+  }
 }
+
+void HandInputListener::rotate_camera_(const Hand& hand) {
+  traceline_counters[0] = 0;
+  const Vector parm_position = hand.palmPosition();
+  if (!rotating) {
+    rotating = true;
+    previous_position = parm_position;
+  } else if (parm_position.distanceTo(previous_position) > 0.3) {
+    Vector move_vector(parm_position - previous_position);
+    float hard = move_vector.x / 200;
+    float s = sin(hard);
+    Quaternion rotate_quaternion(cos(hard)
+        , 0*s
+        , 1*s
+        , 0*s);
+    world_y_quaternion = world_y_quaternion * rotate_quaternion;
+    hard = move_vector.y / 200;
+    s = sin(hard);
+    rotate_quaternion = Quaternion(cos(hard)
+        , 1*s
+        , 0*s
+        , 0*s);
+    world_x_quaternion = world_x_quaternion * rotate_quaternion;
+    camera_z_position += move_vector.z * 6;
+    previous_position = parm_position;
+  }
+}
+
+} // namespace hand_listener
