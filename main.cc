@@ -118,6 +118,27 @@ void display_func(void) {
   }
   glPopAttrib();
 
+  glPushAttrib(GL_LIGHTING_BIT);
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+  for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = listener.tracing_lines.begin()
+      ; tracing_line_map != listener.tracing_lines.end()
+      ; tracing_line_map++) {
+    if ((*tracing_line_map).second.line.size() > 3) {
+      glPushMatrix();
+      glLineWidth(3);
+      pen_line::Line::iterator point = (*tracing_line_map).second.line.begin();
+      glColor3f(point->x, point->y, point->z);
+      ++point;
+      glBegin(GL_LINE_STRIP);
+      for(; point != (*tracing_line_map).second.line.end(); point++) {
+        glVertex3f(point->x, point->y, point->z);
+      }
+      glEnd();
+      glPopMatrix();
+    }
+  }
+
+  glPopAttrib();
   glutSwapBuffers();
 }
 
