@@ -19,6 +19,7 @@ namespace hand_listener{
 void HandInputListener::onInit(const Controller& controller)
 {
   rotating = false;
+  _lock = false;
   world_x_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
   world_y_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
   camera_x_position = DEFAULT_CAMERA_X;
@@ -27,6 +28,7 @@ void HandInputListener::onInit(const Controller& controller)
 }
 
 void HandInputListener::onFrame(const Controller& controller) {
+  lock();
   const Frame frame = controller.frame();
   int open_hand_id = open_hand_id_(frame);
   if (frame.hands().isEmpty()) {
@@ -43,6 +45,7 @@ void HandInputListener::onFrame(const Controller& controller) {
   } else {
     rotate_camera_(frame.hand(open_hand_id));
   }
+  unlock();
 }
 
 void HandInputListener::initialize_world_position() {
@@ -71,6 +74,16 @@ int HandInputListener::open_hand_id_(const Frame& frame) {
     }
   }
   return -1;
+}
+
+void HandInputListener::lock() {
+  while(_lock) {
+  }
+  _lock = true;
+}
+
+void HandInputListener::unlock() {
+  _lock = false;
 }
 
 void HandInputListener::trace_finger_(const Hand& hand) {
@@ -132,6 +145,9 @@ void HandInputListener::trace_finger_(const Hand& hand) {
 void HandInputListener::rotate_camera_(const Hand& hand) {
   int id = hand.id();
   const Vector parm_position = hand.palmPosition();
+  if (parm_position == Vector(0,0,0)) {
+    return;
+  }
   if (!rotating) {
     rotating = true;
     for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = tracing_lines.begin()
@@ -161,6 +177,21 @@ void HandInputListener::rotate_camera_(const Hand& hand) {
     world_x_quaternion = world_x_quaternion * rotate_quaternion;
     camera_z_position += move_vector.z * 6;
     tracing_lines[id].previous_position = parm_position;
+  }
+}
+
+void HandInputListener::clean_line_map_(const Frame& frame) {
+  return;
+  for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = tracing_lines.begin()
+      ; tracing_line_map != tracing_lines.end()
+      ; tracing_line_map++) {
+    int id = (*tracing_line_map).first;
+    if (!frame.pointable(id).isValid()) {
+      if (tracing_lines[id].line.size() > 3) {
+        penline_list.push_back(tracing_lines[id].line);
+      }
+      tracing_lines.erase(id);
+    }
   }
 }
 

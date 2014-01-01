@@ -73,6 +73,7 @@ void apply_world_quaternion(Quaternion &q) {
 }
 
 void display_func(void) {
+  listener.lock();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -139,6 +140,7 @@ void display_func(void) {
   }
 
   glPopAttrib();
+  listener.unlock();
   glutSwapBuffers();
 }
 

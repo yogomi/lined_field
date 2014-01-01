@@ -23,6 +23,8 @@ public:
   virtual void onFrame(const Controller& controller);
   void initialize_world_position();
 
+  void lock();
+  void unlock();
   bool rotating;
   Quaternion world_x_quaternion;
   Quaternion world_y_quaternion;
@@ -35,9 +37,11 @@ public:
 
 private:
   Vector convert_to_world_position_(const Vector &input_vector);
+  bool _lock;
   int open_hand_id_(const Frame& frame);
   void trace_finger_(const Hand& hand);
   void rotate_camera_(const Hand& hand);
+  void clean_line_map_(const Frame& frame);
 };
 
 }
