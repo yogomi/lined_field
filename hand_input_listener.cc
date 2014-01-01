@@ -18,8 +18,6 @@ namespace hand_listener{
 
 void HandInputListener::onInit(const Controller& controller)
 {
-  memset(tracing_object_ids, 0, sizeof(int) * MAX_TRACABLE_POINT_COUNT);
-  memset(traceline_counters, 0, sizeof(int) * MAX_TRACABLE_POINT_COUNT);
   rotating = false;
   world_x_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
   world_y_quaternion = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
@@ -32,7 +30,12 @@ void HandInputListener::onFrame(const Controller& controller) {
   const Frame frame = controller.frame();
   int open_hand_id = open_hand_id_(frame);
   if (frame.hands().isEmpty()) {
-    memset(traceline_counters, 0, sizeof(int) * MAX_TRACABLE_POINT_COUNT);
+    for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = tracing_lines.begin()
+        ; tracing_line_map != tracing_lines.end()
+        ; tracing_line_map++) {
+      penline_list.push_back((*tracing_line_map).second.line);
+      tracing_lines.erase((*tracing_line_map).first);
+    }
   } else if (open_hand_id < 0) {
     for (int i=0; i<frame.hands().count(); i++) {
       trace_finger_(frame.hands()[i]);
@@ -72,7 +75,6 @@ int HandInputListener::open_hand_id_(const Frame& frame) {
 
 void HandInputListener::trace_finger_(const Hand& hand) {
   int id = hand.pointables()[0].id();
-  std::cout << hand.pointables().count() << std::endl;
   if (id < 0) {
     return;
   }
@@ -80,7 +82,6 @@ void HandInputListener::trace_finger_(const Hand& hand) {
   gettimeofday(&now, NULL);
   const Pointable tracing_object = hand.pointable(id);
   rotating = false;
-  std::cout << tracing_lines[id].counter << std::endl;
   if (tracing_object.isValid()) {
     Vector tip_position = tracing_object.tipPosition();
     tip_position = convert_to_world_position_(tip_position);
@@ -123,10 +124,15 @@ void HandInputListener::trace_finger_(const Hand& hand) {
 
 void HandInputListener::rotate_camera_(const Hand& hand) {
   int id = hand.id();
-  traceline_counters[0] = 0;
   const Vector parm_position = hand.palmPosition();
   if (!rotating) {
     rotating = true;
+    for (std::map<int,pen_line::TracingLine>::iterator tracing_line_map = tracing_lines.begin()
+        ; tracing_line_map != tracing_lines.end()
+        ; tracing_line_map++) {
+      penline_list.push_back((*tracing_line_map).second.line);
+      tracing_lines.erase((*tracing_line_map).first);
+    }
     tracing_lines[id].previous_position = parm_position;
   } else if (parm_position.distanceTo(tracing_lines[id].previous_position) > 0.3) {
     Vector move_vector(parm_position - tracing_lines[id].previous_position);

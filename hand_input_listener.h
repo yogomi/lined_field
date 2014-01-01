@@ -23,8 +23,6 @@ public:
   virtual void onFrame(const Controller& controller);
   void initialize_world_position();
 
-  int tracing_object_ids[MAX_TRACABLE_POINT_COUNT];
-  int traceline_counters[MAX_TRACABLE_POINT_COUNT];
   bool rotating;
   Quaternion world_x_quaternion;
   Quaternion world_y_quaternion;
