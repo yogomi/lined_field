@@ -81,6 +81,13 @@ void HandInputListener::trace_finger_(const Hand& hand) {
   struct timeval now;
   gettimeofday(&now, NULL);
   const Pointable tracing_object = hand.pointable(id);
+  if (hand.pointables().count() == 0) {
+    if (tracing_lines[id].line.size() > 3) {
+      penline_list.push_back(tracing_lines[id].line);
+    }
+    tracing_lines.erase(id);
+    return;
+  }
   rotating = false;
   if (tracing_object.isValid()) {
     Vector tip_position = tracing_object.tipPosition();
